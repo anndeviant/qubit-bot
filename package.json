@@ -1,0 +1,23 @@
+{
+    "name": "qubit-wa-bot",
+    "version": "1.0.0",
+    "description": "Modular WhatsApp bot with yt-dlp downloader plugin",
+    "main": "core/bot.js",
+    "scripts": {
+        "dev": "node core/bot.js"
+    },
+    "keywords": [
+        "whatsapp",
+        "baileys",
+        "yt-dlp",
+        "bot"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@whiskeysockets/baileys": "^6.7.18",
+        "dotenv": "^17.3.1",
+        "pino": "^9.11.0",
+        "qrcode-terminal": "^0.12.0"
+    }
+}
