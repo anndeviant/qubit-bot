@@ -8,14 +8,28 @@ function runYtDlp({ ytDlpBin, ffmpegBin, url, mode, outputDir }) {
     const fileTag = Date.now().toString();
     const outTemplate = path.join(outputDir, `${fileTag}_%(title).50s.%(ext)s`);
 
+    const ffmpegRaw = String(ffmpegBin || "").trim();
+    const ffmpegResolved = ffmpegRaw
+      ? path.resolve(process.cwd(), ffmpegRaw)
+      : "";
+    const ffmpegLocation = fs.existsSync(ffmpegRaw)
+      ? ffmpegRaw
+      : ffmpegResolved && fs.existsSync(ffmpegResolved)
+        ? ffmpegResolved
+        : "";
+
     const args = [
       "--no-playlist",
       "--restrict-filenames",
-      "--ffmpeg-location",
-      ffmpegBin,
-      "-o",
-      outTemplate,
+      "--js-runtimes",
+      "node",
     ];
+
+    if (ffmpegLocation) {
+      args.push("--ffmpeg-location", ffmpegLocation);
+    }
+
+    args.push("-o", outTemplate);
 
     if (mode === "audio") {
       args.push("-x", "--audio-format", "mp3");
@@ -62,6 +76,49 @@ function runYtDlp({ ytDlpBin, ffmpegBin, url, mode, outputDir }) {
   });
 }
 
+function getYtDlpTitle({ ytDlpBin, url }) {
+  return new Promise((resolve) => {
+    const args = [
+      "--no-playlist",
+      "--no-warnings",
+      "--skip-download",
+      "--js-runtimes",
+      "node",
+      "--print",
+      "%(title)s",
+      url,
+    ];
+
+    const child = spawn(ytDlpBin, args, {
+      windowsHide: true,
+    });
+
+    let stdOut = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdOut += chunk.toString();
+    });
+
+    child.on("error", () => {
+      resolve(null);
+    });
+
+    child.on("close", (code) => {
+      if (code !== 0) {
+        resolve(null);
+        return;
+      }
+
+      const title = stdOut
+        .split(/\r?\n/g)
+        .map((line) => line.trim())
+        .find(Boolean);
+
+      resolve(title || null);
+    });
+  });
+}
+
 function getMediaType(mode) {
   if (mode === "audio") {
     return {
@@ -103,10 +160,27 @@ function makeOutputFileName(baseName, mode) {
   return `${safe}${ext}`;
 }
 
+function extractMediaTitle(filePathOrBaseName) {
+  const rawBaseName = path.basename(
+    String(filePathOrBaseName || ""),
+    path.extname(String(filePathOrBaseName || "")),
+  );
+
+  const withoutTag = rawBaseName.replace(/^\d+_/, "");
+  const readable = withoutTag
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return readable || "media";
+}
+
 module.exports = {
   runYtDlp,
+  getYtDlpTitle,
   getMediaType,
   normalizeMode,
   readableSize,
   makeOutputFileName,
+  extractMediaTitle,
 };

@@ -20,19 +20,21 @@ function isYouTubeUrl(url) {
 }
 
 module.exports = {
-  name: "downloader",
+  name: "audio",
   commands: [
     {
-      name: "video",
-      description: "Download video dari URL sosial media",
+      name: "audio",
+      description:
+        "Download audio MP3 (player) atau file asli: !audio file <url>",
       async execute({ socket, message, args, config, responses, logger }) {
         const targetJid = message.key.remoteJid;
-        const url = args[0];
-        const mode = "video";
+        const wantsDocument = String(args[0] || "").toLowerCase() === "file";
+        const url = wantsDocument ? args[1] : args[0];
+        const mode = "audio";
 
         if (!url || !isUrl(url)) {
           await socket.sendMessage(targetJid, {
-            text: `Format salah. Contoh: ${config.prefix}video <url>`,
+            text: `Format salah. Contoh:\n${config.prefix}audio <url>\n${config.prefix}audio file <url>`,
           });
           return;
         }
@@ -46,7 +48,8 @@ module.exports = {
 
         let outputFilePath;
         try {
-          const youtubeTitle = isYouTubeUrl(url)
+          const isYoutube = isYouTubeUrl(url);
+          const youtubeTitle = isYoutube
             ? await getYtDlpTitle({ ytDlpBin: config.ytDlpBin, url })
             : null;
 
@@ -84,13 +87,34 @@ module.exports = {
             caption: `Judul: ${title}\nSelesai. Ukuran: ${readableSize(stat.size)}`,
           };
 
-          payload[mediaType.messageType] = fileBuffer;
+          if (wantsDocument) {
+            payload.document = fileBuffer;
+          } else {
+            payload[mediaType.messageType] = fileBuffer;
+            payload.ptt = false;
+          }
 
-          await socket.sendMessage(targetJid, payload, {
-            quoted: message,
-          });
+          const sentAudioMessage = await socket.sendMessage(
+            targetJid,
+            payload,
+            {
+              quoted: message,
+            },
+          );
+
+          if (isYoutube && !wantsDocument) {
+            await socket.sendMessage(
+              targetJid,
+              {
+                text: `Title: ${title}`,
+              },
+              { quoted: sentAudioMessage || message },
+            );
+          }
         } catch (error) {
-          logger.error(`Downloader failed: ${error.stack || error.message}`);
+          logger.error(
+            `Audio downloader failed: ${error.stack || error.message}`,
+          );
           await socket.sendMessage(targetJid, {
             text: responses.downloadFailed || "Gagal memproses download",
           });

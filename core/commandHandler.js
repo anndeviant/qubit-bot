@@ -98,9 +98,9 @@ async function tryAutoDownloadFromStickerReply({
     return false;
   }
 
-  const downloaderCommand = commandMap.get("dl");
+  const downloaderCommand = commandMap.get("video") || commandMap.get("dl");
   if (!downloaderCommand || typeof downloaderCommand.execute !== "function") {
-    logger.warn("Auto downloader skipped: dl command not available.");
+    logger.warn("Auto downloader skipped: video command not available.");
     return false;
   }
 

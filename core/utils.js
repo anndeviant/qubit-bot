@@ -157,9 +157,13 @@ function isUrl(text) {
 }
 
 function safeFileName(input) {
-  return String(input || "media")
-    .replace(/[^a-zA-Z0-9-_\.]/g, "_")
-    .slice(0, 64);
+  const raw = String(input || "media")
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[\.\s]+$/g, "");
+
+  return raw || "media";
 }
 
 function joinRoot(...parts) {
