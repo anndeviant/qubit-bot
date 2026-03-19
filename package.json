@@ -1,7 +1,7 @@
 {
     "name": "qubit-wa-bot",
     "version": "1.0.0",
-    "description": "Modular WhatsApp bot with yt-dlp downloader plugin",
+    "description": "WhatsApp bot using Baileys",
     "main": "core/bot.js",
     "scripts": {
         "dev": "node core/bot.js"

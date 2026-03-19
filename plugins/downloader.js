@@ -3,6 +3,7 @@ const path = require("path");
 const {
   runYtDlp,
   getYtDlpTitle,
+  getYtDlpInfo,
   getMediaType,
   readableSize,
   makeOutputFileName,
@@ -19,12 +20,21 @@ function isYouTubeUrl(url) {
   }
 }
 
+function isTikTokUrl(url) {
+  try {
+    return new URL(url).hostname.toLowerCase().includes("tiktok.com");
+  } catch (error) {
+    return false;
+  }
+}
+
 module.exports = {
   name: "downloader",
   commands: [
     {
       name: "video",
-      description: "Download video dari URL sosial media",
+      category: "Downloader",
+      description: "Download URL Sosmed",
       async execute({ socket, message, args, config, responses, logger }) {
         const targetJid = message.key.remoteJid;
         const url = args[0];
@@ -46,9 +56,18 @@ module.exports = {
 
         let outputFilePath;
         try {
+          const isTikTok = isTikTokUrl(url);
           const youtubeTitle = isYouTubeUrl(url)
             ? await getYtDlpTitle({ ytDlpBin: config.ytDlpBin, url })
             : null;
+          const tiktokInfo = isTikTok
+            ? await getYtDlpInfo({ ytDlpBin: config.ytDlpBin, url }).catch(
+                () => null,
+              )
+            : null;
+          const tiktokDesc = String(
+            tiktokInfo?.title || tiktokInfo?.description || "",
+          ).trim();
 
           outputFilePath = await runYtDlp({
             ytDlpBin: config.ytDlpBin,
@@ -75,13 +94,15 @@ module.exports = {
             outputFilePath,
             path.extname(outputFilePath),
           );
-          const title = youtubeTitle || extractMediaTitle(baseName);
+          const title =
+            tiktokDesc || youtubeTitle || extractMediaTitle(baseName);
           const fileName = makeOutputFileName(title, mode);
+          const titleLabel = isTikTok ? "Desc" : "Judul";
 
           const payload = {
             mimetype: mediaType.mimetype,
             fileName,
-            caption: `Judul: ${title}\nSelesai. Ukuran: ${readableSize(stat.size)}`,
+            caption: `${titleLabel}: ${title}\nSelesai. Ukuran: ${readableSize(stat.size)}`,
           };
 
           payload[mediaType.messageType] = fileBuffer;

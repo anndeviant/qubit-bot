@@ -119,6 +119,53 @@ function getYtDlpTitle({ ytDlpBin, url }) {
   });
 }
 
+function getYtDlpInfo({ ytDlpBin, url }) {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "--no-playlist",
+      "--no-warnings",
+      "--skip-download",
+      "--js-runtimes",
+      "node",
+      "--dump-single-json",
+      url,
+    ];
+
+    const child = spawn(ytDlpBin, args, {
+      windowsHide: true,
+    });
+
+    let stdOut = "";
+    let stdErr = "";
+
+    child.stdout.on("data", (chunk) => {
+      stdOut += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stdErr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`yt-dlp info exited with code ${code}: ${stdErr}`));
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(stdOut);
+        resolve(parsed);
+      } catch (error) {
+        reject(new Error(`Failed parsing yt-dlp info JSON: ${error.message}`));
+      }
+    });
+  });
+}
+
 function getMediaType(mode) {
   if (mode === "audio") {
     return {
@@ -178,6 +225,7 @@ function extractMediaTitle(filePathOrBaseName) {
 module.exports = {
   runYtDlp,
   getYtDlpTitle,
+  getYtDlpInfo,
   getMediaType,
   normalizeMode,
   readableSize,

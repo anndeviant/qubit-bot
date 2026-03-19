@@ -3,6 +3,7 @@ const path = require("path");
 const {
   runYtDlp,
   getYtDlpTitle,
+  getYtDlpInfo,
   getMediaType,
   readableSize,
   makeOutputFileName,
@@ -19,13 +20,31 @@ function isYouTubeUrl(url) {
   }
 }
 
+function isTikTokUrl(url) {
+  try {
+    return new URL(url).hostname.toLowerCase().includes("tiktok.com");
+  } catch (error) {
+    return false;
+  }
+}
+
 module.exports = {
   name: "audio",
   commands: [
     {
       name: "audio",
-      description:
-        "Download audio MP3 (player) atau file asli: !audio file <url>",
+      category: "Downloader",
+      helpEntries: [
+        {
+          name: "audio",
+          description: "Audio (Player)",
+        },
+        {
+          name: "audio file",
+          description: "Dokumen Audio MP3",
+        },
+      ],
+      description: "Downloader Audio",
       async execute({ socket, message, args, config, responses, logger }) {
         const targetJid = message.key.remoteJid;
         const wantsDocument = String(args[0] || "").toLowerCase() === "file";
@@ -48,10 +67,19 @@ module.exports = {
 
         let outputFilePath;
         try {
+          const isTikTok = isTikTokUrl(url);
           const isYoutube = isYouTubeUrl(url);
           const youtubeTitle = isYoutube
             ? await getYtDlpTitle({ ytDlpBin: config.ytDlpBin, url })
             : null;
+          const tiktokInfo = isTikTok
+            ? await getYtDlpInfo({ ytDlpBin: config.ytDlpBin, url }).catch(
+                () => null,
+              )
+            : null;
+          const tiktokDesc = String(
+            tiktokInfo?.title || tiktokInfo?.description || "",
+          ).trim();
 
           outputFilePath = await runYtDlp({
             ytDlpBin: config.ytDlpBin,
@@ -78,13 +106,15 @@ module.exports = {
             outputFilePath,
             path.extname(outputFilePath),
           );
-          const title = youtubeTitle || extractMediaTitle(baseName);
+          const title =
+            tiktokDesc || youtubeTitle || extractMediaTitle(baseName);
           const fileName = makeOutputFileName(title, mode);
+          const titleLabel = isTikTok ? "Desc" : "Judul";
 
           const payload = {
             mimetype: mediaType.mimetype,
             fileName,
-            caption: `Judul: ${title}\nSelesai. Ukuran: ${readableSize(stat.size)}`,
+            caption: `${titleLabel}: ${title}\nSelesai. Ukuran: ${readableSize(stat.size)}`,
           };
 
           if (wantsDocument) {
