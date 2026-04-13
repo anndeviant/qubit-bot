@@ -18,7 +18,7 @@ async function fetchJson(url) {
       method: "GET",
       signal: controller.signal,
       headers: {
-        "User-Agent": "Qubit/1.0",
+        "User-Agent": "WhatsAppBot/1.0 (Node.js)",
       },
     });
 
@@ -41,11 +41,11 @@ module.exports = {
       helpEntries: [
         {
           name: "kurs [kurs]",
-          description: "Kurs to IDR, cth. !kurs usd",
+          description: "Kurs to IDR, cth. .kurs usd",
         },
         {
           name: "kurs [kurs1] [kurs2] 100",
-          description: "Konversi, !kurs usd idr 100",
+          description: "Konversi, .kurs usd idr 100",
         },
       ],
       description: "Cek kurs mata uang via Frankfurter API",

@@ -3,31 +3,121 @@ const path = require("path");
 const { spawn } = require("child_process");
 const { safeFileName } = require("./utils");
 
-function runYtDlp({ ytDlpBin, ffmpegBin, url, mode, outputDir }) {
+function resolveExistingPath(rawPath) {
+  const value = String(rawPath || "").trim();
+  if (!value) {
+    return "";
+  }
+
+  const absolutePath = path.resolve(process.cwd(), value);
+  if (fs.existsSync(value)) {
+    return value;
+  }
+
+  if (fs.existsSync(absolutePath)) {
+    return absolutePath;
+  }
+
+  return "";
+}
+
+function getYtDlpCommonArgs({
+  ffmpegBin,
+  ytDlpCookiesFile,
+  ytDlpCookiesFromBrowser,
+}) {
+  const args = [
+    "--no-playlist",
+    "--restrict-filenames",
+    "--js-runtimes",
+    "node",
+  ];
+
+  const ffmpegLocation = resolveExistingPath(ffmpegBin);
+  if (ffmpegLocation) {
+    args.push("--ffmpeg-location", ffmpegLocation);
+  }
+
+  const cookiesFileRaw = String(ytDlpCookiesFile || "").trim();
+  const cookiesFile = resolveExistingPath(cookiesFileRaw);
+  const cookiesFromBrowser = String(ytDlpCookiesFromBrowser || "").trim();
+
+  if (cookiesFileRaw && !cookiesFile) {
+    throw new Error(`Configured ytDlpCookiesFile not found: ${cookiesFileRaw}`);
+  }
+
+  if (cookiesFile) {
+    args.push("--cookies", cookiesFile);
+  } else if (cookiesFromBrowser) {
+    args.push("--cookies-from-browser", cookiesFromBrowser);
+  }
+
+  return args;
+}
+
+function isYtAuthChallengeError(message) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("sign in to confirm you're not a bot");
+}
+
+function isBrowserCookieDecryptError(message) {
+  const text = String(message || "").toLowerCase();
+  return (
+    text.includes("failed to decrypt with dpapi") ||
+    text.includes("attributerror") ||
+    text.includes("nonetype")
+  );
+}
+
+function getDownloaderUserFacingError(error) {
+  const raw = String(error?.message || "");
+  const lower = raw.toLowerCase();
+
+  if (lower.includes("configured ytdlpcookiesfile not found")) {
+    return [
+      "File cookie tidak ditemukan sesuai config ytDlpCookiesFile.",
+      "Pastikan file ada di path yang sama persis dengan nilai di config.",
+      "Contoh: ytDlpCookiesFile = ./cookies.txt jika file ada di root project.",
+    ].join("\n");
+  }
+
+  if (isYtAuthChallengeError(raw)) {
+    return [
+      "YouTube meminta verifikasi login (anti-bot).",
+      "Solusi: isi config ytDlpCookiesFile dengan file cookies.txt yang valid.",
+      "Jika memakai ytDlpCookiesFromBrowser, pastikan browser ditutup saat yt-dlp membaca cookie.",
+    ].join("\n");
+  }
+
+  if (isBrowserCookieDecryptError(raw)) {
+    return [
+      "yt-dlp gagal membaca cookie browser (DPAPI/decrypt).",
+      "Solusi paling stabil: export cookie ke cookies.txt lalu pakai ytDlpCookiesFile.",
+      "Jika tetap pakai ytDlpCookiesFromBrowser, jalankan bot dengan user Windows yang sama dan tutup browser saat proses download.",
+    ].join("\n");
+  }
+
+  return null;
+}
+
+function runYtDlp({
+  ytDlpBin,
+  ffmpegBin,
+  ytDlpCookiesFile,
+  ytDlpCookiesFromBrowser,
+  url,
+  mode,
+  outputDir,
+}) {
   return new Promise((resolve, reject) => {
     const fileTag = Date.now().toString();
     const outTemplate = path.join(outputDir, `${fileTag}_%(title).50s.%(ext)s`);
 
-    const ffmpegRaw = String(ffmpegBin || "").trim();
-    const ffmpegResolved = ffmpegRaw
-      ? path.resolve(process.cwd(), ffmpegRaw)
-      : "";
-    const ffmpegLocation = fs.existsSync(ffmpegRaw)
-      ? ffmpegRaw
-      : ffmpegResolved && fs.existsSync(ffmpegResolved)
-        ? ffmpegResolved
-        : "";
-
-    const args = [
-      "--no-playlist",
-      "--restrict-filenames",
-      "--js-runtimes",
-      "node",
-    ];
-
-    if (ffmpegLocation) {
-      args.push("--ffmpeg-location", ffmpegLocation);
-    }
+    const args = getYtDlpCommonArgs({
+      ffmpegBin,
+      ytDlpCookiesFile,
+      ytDlpCookiesFromBrowser,
+    });
 
     args.push("-o", outTemplate);
 
@@ -76,18 +166,21 @@ function runYtDlp({ ytDlpBin, ffmpegBin, url, mode, outputDir }) {
   });
 }
 
-function getYtDlpTitle({ ytDlpBin, url }) {
+function getYtDlpTitle({
+  ytDlpBin,
+  ffmpegBin,
+  ytDlpCookiesFile,
+  ytDlpCookiesFromBrowser,
+  url,
+}) {
   return new Promise((resolve) => {
-    const args = [
-      "--no-playlist",
-      "--no-warnings",
-      "--skip-download",
-      "--js-runtimes",
-      "node",
-      "--print",
-      "%(title)s",
-      url,
-    ];
+    const args = getYtDlpCommonArgs({
+      ffmpegBin,
+      ytDlpCookiesFile,
+      ytDlpCookiesFromBrowser,
+    });
+
+    args.push("--no-warnings", "--skip-download", "--print", "%(title)s", url);
 
     const child = spawn(ytDlpBin, args, {
       windowsHide: true,
@@ -119,17 +212,21 @@ function getYtDlpTitle({ ytDlpBin, url }) {
   });
 }
 
-function getYtDlpInfo({ ytDlpBin, url }) {
+function getYtDlpInfo({
+  ytDlpBin,
+  ffmpegBin,
+  ytDlpCookiesFile,
+  ytDlpCookiesFromBrowser,
+  url,
+}) {
   return new Promise((resolve, reject) => {
-    const args = [
-      "--no-playlist",
-      "--no-warnings",
-      "--skip-download",
-      "--js-runtimes",
-      "node",
-      "--dump-single-json",
-      url,
-    ];
+    const args = getYtDlpCommonArgs({
+      ffmpegBin,
+      ytDlpCookiesFile,
+      ytDlpCookiesFromBrowser,
+    });
+
+    args.push("--no-warnings", "--skip-download", "--dump-single-json", url);
 
     const child = spawn(ytDlpBin, args, {
       windowsHide: true,
@@ -226,6 +323,7 @@ module.exports = {
   runYtDlp,
   getYtDlpTitle,
   getYtDlpInfo,
+  getDownloaderUserFacingError,
   getMediaType,
   normalizeMode,
   readableSize,

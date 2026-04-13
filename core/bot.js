@@ -115,10 +115,12 @@ async function start() {
       return;
     }
 
+    const remoteJid = message.key.remoteJid || "";
     const senderJid = getSenderJid(message) || "unknown";
     const senderId = stripNumberFromJid(senderJid) || senderJid;
-    const isGroup = Boolean((message.key.remoteJid || "").endsWith("@g.us"));
-    const chatType = isGroup ? "group" : "private";
+    const isGroup = remoteJid.endsWith("@g.us");
+    const isStatus = remoteJid === "status@broadcast";
+    const chatType = isStatus ? "status" : isGroup ? "group" : "private";
     const incomingText = truncateText(extractIncomingText(message.message));
 
     logger.info(

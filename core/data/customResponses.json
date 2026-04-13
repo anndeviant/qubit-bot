@@ -1,0 +1,7 @@
+{
+    "notOwner": "Perintah ini hanya untuk owner.",
+    "downloadStarted": "Sedang memproses link, tunggu sebentar ya...",
+    "downloadFailed": "Gagal memproses link. Pastikan URL valid dan yt-dlp tersedia di server.",
+    "downloadTooLarge": "Ukuran file terlalu besar untuk dikirim.",
+    "unknownCommand": "Command tidak dikenali. Ketik .help"
+}
