@@ -7,7 +7,7 @@ async function fetchJson(url) {
       method: "GET",
       signal: controller.signal,
       headers: {
-        "User-Agent": "Qubit/1.0",
+        "User-Agent": "WhatsAppBot/1.0 (Node.js)",
       },
     });
 

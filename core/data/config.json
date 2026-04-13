@@ -1,0 +1,11 @@
+{
+    "prefix": ".",
+    "ownerNumbers": [],
+    "maxDownloadSizeMb": 60,
+    "sessionPath": "session",
+    "downloadsPath": "downloads",
+    "ytDlpBin": "./yt-dlp.exe",
+    "ffmpegBin": "ffmpeg",
+    "ytDlpCookiesFile": "./youtube-cookies.txt",
+    "ytDlpCookiesFromBrowser": ""
+}

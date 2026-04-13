@@ -4,4 +4,10 @@ session/
 downloads/
 temp/
 *.log
-core/data/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+youtube-cookies.txt
+cookies.txt
+*cookies*.txt

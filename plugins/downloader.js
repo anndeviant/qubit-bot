@@ -4,6 +4,7 @@ const {
   runYtDlp,
   getYtDlpTitle,
   getYtDlpInfo,
+  getDownloaderUserFacingError,
   getMediaType,
   readableSize,
   makeOutputFileName,
@@ -58,12 +59,22 @@ module.exports = {
         try {
           const isTikTok = isTikTokUrl(url);
           const youtubeTitle = isYouTubeUrl(url)
-            ? await getYtDlpTitle({ ytDlpBin: config.ytDlpBin, url })
+            ? await getYtDlpTitle({
+                ytDlpBin: config.ytDlpBin,
+                ffmpegBin: config.ffmpegBin,
+                ytDlpCookiesFile: config.ytDlpCookiesFile,
+                ytDlpCookiesFromBrowser: config.ytDlpCookiesFromBrowser,
+                url,
+              })
             : null;
           const tiktokInfo = isTikTok
-            ? await getYtDlpInfo({ ytDlpBin: config.ytDlpBin, url }).catch(
-                () => null,
-              )
+            ? await getYtDlpInfo({
+                ytDlpBin: config.ytDlpBin,
+                ffmpegBin: config.ffmpegBin,
+                ytDlpCookiesFile: config.ytDlpCookiesFile,
+                ytDlpCookiesFromBrowser: config.ytDlpCookiesFromBrowser,
+                url,
+              }).catch(() => null)
             : null;
           const tiktokDesc = String(
             tiktokInfo?.title || tiktokInfo?.description || "",
@@ -72,6 +83,8 @@ module.exports = {
           outputFilePath = await runYtDlp({
             ytDlpBin: config.ytDlpBin,
             ffmpegBin: config.ffmpegBin,
+            ytDlpCookiesFile: config.ytDlpCookiesFile,
+            ytDlpCookiesFromBrowser: config.ytDlpCookiesFromBrowser,
             url,
             mode,
             outputDir: downloadsDir,
@@ -112,8 +125,12 @@ module.exports = {
           });
         } catch (error) {
           logger.error(`Downloader failed: ${error.stack || error.message}`);
+          const friendlyError = getDownloaderUserFacingError(error);
           await socket.sendMessage(targetJid, {
-            text: responses.downloadFailed || "Gagal memproses download",
+            text:
+              friendlyError ||
+              responses.downloadFailed ||
+              "Gagal memproses download",
           });
         } finally {
           if (outputFilePath && fs.existsSync(outputFilePath)) {

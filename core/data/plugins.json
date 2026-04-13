@@ -1,0 +1,13 @@
+{
+    "enabled": [
+        "admin",
+        "downloader",
+        "audio",
+        "check",
+        "sholat",
+        "kurs",
+        "cuaca",
+        "gempa",
+        "gemini"
+    ]
+}

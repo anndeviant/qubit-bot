@@ -8,7 +8,14 @@ function isOwner(config, message) {
   return isOwnerFromMessage(config, message);
 }
 
-const HELP_CATEGORY_ORDER = ["General", "Owner", "Downloader", "Info", "Other"];
+const HELP_CATEGORY_ORDER = [
+  "General",
+  "Downloader",
+  "Info",
+  "AI",
+  "Owner",
+  "Other",
+];
 
 function normalizeHelpEntries(command) {
   const fallbackDescription = command.description || "No description";
@@ -49,14 +56,28 @@ module.exports = {
     {
       name: "help",
       category: "General",
+      helpEntries: [
+        {
+          name: "help",
+          description: "Compact Command",
+        },
+        {
+          name: "help desc",
+          description: "Detailed Command",
+        },
+      ],
       description: "Lihat daftar command",
-      async execute({ socket, message, commandMap, config }) {
+      async execute({ socket, message, commandMap, config, args }) {
+        const showDescriptions =
+          String(args?.[0] || "").toLowerCase() === "desc";
         const sectionMap = new Map();
 
         for (const cmd of commandMap.values()) {
           const category = cmd.category || "Other";
-          const lines = normalizeHelpEntries(cmd).map(
-            (entry) => `${config.prefix}${entry.name} - ${entry.description}`,
+          const lines = normalizeHelpEntries(cmd).map((entry) =>
+            showDescriptions
+              ? `${config.prefix}${entry.name} - ${entry.description}`
+              : `${config.prefix}${entry.name}`,
           );
 
           if (!sectionMap.has(category)) {
@@ -87,7 +108,9 @@ module.exports = {
           .join("\n\n");
 
         await socket.sendMessage(message.key.remoteJid, {
-          text: `${commands}`,
+          text: showDescriptions
+            ? `Detailed Command List\n${commands}`
+            : `Compact Command List\n${commands}`,
         });
       },
     },

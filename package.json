@@ -4,7 +4,8 @@
     "description": "WhatsApp bot using Baileys",
     "main": "core/bot.js",
     "scripts": {
-        "dev": "node core/bot.js"
+        "dev": "node core/bot.js",
+        "session:cleanup-targeted": "node tools/cleanupTargetedSession.js"
     },
     "keywords": [
         "whatsapp",

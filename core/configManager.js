@@ -2,13 +2,15 @@ const fs = require("fs");
 const path = require("path");
 
 const DEFAULTS = {
-  prefix: "!",
+  prefix: ".",
   ownerNumbers: [],
   maxDownloadSizeMb: 60,
   sessionPath: "session",
   downloadsPath: "downloads",
   ytDlpBin: "yt-dlp",
   ffmpegBin: "ffmpeg",
+  ytDlpCookiesFile: "",
+  ytDlpCookiesFromBrowser: "",
 };
 
 function loadJson(jsonPath) {
@@ -37,6 +39,14 @@ function loadConfig() {
     ytDlpBin: process.env.YTDLP_BIN || fileConfig.ytDlpBin || DEFAULTS.ytDlpBin,
     ffmpegBin:
       process.env.FFMPEG_BIN || fileConfig.ffmpegBin || DEFAULTS.ffmpegBin,
+    ytDlpCookiesFile:
+      process.env.YTDLP_COOKIES_FILE ||
+      fileConfig.ytDlpCookiesFile ||
+      DEFAULTS.ytDlpCookiesFile,
+    ytDlpCookiesFromBrowser:
+      process.env.YTDLP_COOKIES_FROM_BROWSER ||
+      fileConfig.ytDlpCookiesFromBrowser ||
+      DEFAULTS.ytDlpCookiesFromBrowser,
   };
 }
 
